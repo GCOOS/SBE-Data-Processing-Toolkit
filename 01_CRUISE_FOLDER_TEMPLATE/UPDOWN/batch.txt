@@ -1,0 +1,12 @@
+@ This batch file can be used to batch process all of the cruise's files with one command.
+@ Modify the paths below to match the current cruise folder
+@ How to launch:
+@ > SBEBatch.exe <path_to_batch_file>\batch.txt
+
+
+datcnv /p_CRUISEDIR_\UPDOWN\DatCnv.psa /i_CRUISEDIR_\CNV\00-hex\*.hex
+filter /p_CRUISEDIR_\UPDOWN\Filter.psa /i_CRUISEDIR_\UPDOWN\01-cnv\*.cnv
+alignctd /p_CRUISEDIR_\UPDOWN\AlignCTD.psa /i_CRUISEDIR_\UPDOWN\02-flt\*.cnv
+celltm /p_CRUISEDIR_\UPDOWN\CellTM.psa /i_CRUISEDIR_\UPDOWN\03-aln\*.cnv
+loopedit /p_CRUISEDIR_\UPDOWN\LoopEdit.psa /i_CRUISEDIR_\UPDOWN\04-cel\*.cnv
+derive /p_CRUISEDIR_\UPDOWN\Derive.psa /i_CRUISEDIR_\UPDOWN\05-loop\*.cnv

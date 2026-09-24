@@ -1,0 +1,4 @@
+alignctd /p_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\AlignCTD.psa /i_CRUISEDIR_\CNV\02-flt\*.cnv
+celltm /p_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\CellTM.psa /i_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\03-aln\*.cnv
+loopedit /p_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\LoopEdit.psa /i_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\04-cel\*.cnv
+derive /p_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\Derive.psa /i_CRUISEDIR_\ALIGN_TC\OUT\_DELAY_\05-loop\*.cnv

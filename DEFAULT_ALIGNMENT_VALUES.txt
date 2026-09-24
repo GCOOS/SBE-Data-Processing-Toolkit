@@ -1,0 +1,20 @@
+Walton-Smith (SBE911Plus with deck unit)
+========================================
+
+Based on WS24258 CTD cast files.
+
+Method for Conductivity alignment: visually checking T,C,density,descent rate plots with a range of alignment values.
+Method for Oxygen signal alignment: visually checking Oxygen (ml/l) plots (incl. up- and downcast!) with a range of alignment values.
+These is described in SeaBird manuals.
+
+
+1) Primary Conductivity: 0.0 seconds.
+(According to manuals, deck unit can do the alignment for the primary sensors. Based on the plots it seems to do that.)
+
+2) Secondary Conductivity: 0.073 seconds.
+(This is the default value, and seems to agree with the plots.)
+
+3) Oxygen: 5.0 seconds.
+
+
+
