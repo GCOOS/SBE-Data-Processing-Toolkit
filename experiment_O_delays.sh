@@ -22,7 +22,8 @@ win_cruise_dir="${wsl_cruise_dir//\\/\\\\}"
 
 # SBE911Plus default alignment for Oxygen is 3.5 seconds.
 # Experiment around it:
-for DELAY in $(seq -f "%.1f" 2 0.5 6); do
+#for DELAY in $(seq -f "%.1f" 2 0.5 6); do
+for DELAY in $(seq -f "%.1f" 2 1 6); do
 
 	export DELAY
 	

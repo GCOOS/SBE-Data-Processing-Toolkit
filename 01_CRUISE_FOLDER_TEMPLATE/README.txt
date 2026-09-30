@@ -7,7 +7,10 @@ FOLDER STRUCTURE:
 			OBS! The user may need to process the data more than once in this folder if the Conductivity, Oxygen 
 			alignment values need to be adjusted.
 		
-- UPDOWN: 		Used for processing the down- and upcast data for the cruise
+- UPDOWN: 		Used for processing the down- and upcast data for the cruise. 
+			This is not strictly necessary, but useful for two purposes:
+			1) Seabird SW fails to detect the downcast reliably in shallow stations, resulting in very short sample of data written out
+			2) For finding out the proper Oxygen signal alignment value (need to plot data from both down- and upcast)
 
 - ALIGN_TC: 		Used for figuring out correct Conductivity alignment value.
 			Downcast data can be copied over to this folder from CNV folder.

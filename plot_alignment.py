@@ -223,7 +223,7 @@ def load_folder_file(driver: Path, filename: str) -> CnvData:
 
 
 def find_pressure_column(columns: list[str]) -> str | None:
-    preferred = ("prDM", "pressure", "Pressure")
+    preferred = ("prDM", "pressure", "Pressure", "prdM")
     for candidate in preferred:
         if candidate in columns:
             return candidate

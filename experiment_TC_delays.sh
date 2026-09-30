@@ -22,8 +22,9 @@ win_cruise_dir="${wsl_cruise_dir//\\/\\\\}"
 
 # SBE911Plus default alignment for Conductivity is 0.073 seconds.
 # Experiment around it:
-#for DELAY in $(seq -f "%.6f" 0 0.024 0.2); do
-for DELAY in $(seq -f "%.6f" 0.072 0.012 0.12); do
+
+#for DELAY in $(seq -f "%.6f" 0.072 0.012 0.12); do
+for DELAY in $(seq -f "%.6f" 0.03 0.02 0.1); do
 	export DELAY
 	
 	# copy template to new dir named after the delay value
