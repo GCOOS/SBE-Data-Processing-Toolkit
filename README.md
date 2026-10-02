@@ -4,6 +4,58 @@ This Dash app finds `.cnv` files in `OUT/*/06-drv`, presents the filenames
 shared by all folders once, and creates one interactive pressure profile per
 folder directly under `OUT`.
 
+## CTD conversion workflow
+
+1. Initialize the cruise folder for conversion with `init_cruise_folder.sh`.
+2. Copy the original CTD cast files to the `CNV` directory.
+3. Read the cruise field notes or data sheet, and rename the files in the
+   `CNV` folder if necessary.
+4. Make sure the filenames follow the naming convention
+   `<cruise_name>_Stn.<station_name>_<running_cast_order_number>`.
+5. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
+   Processing software, processing only the downcast. Include the pump status
+   variable if it is available.
+6. Run `pump_status_report.py` (see [Command-line pump report](#command-line-pump-report))
+   to check whether the Sea-Bird software kept too little data for any file
+   when it detected the downcast.
+7. For stations where the downcast was not detected properly, run the
+   conversion in the `UPDOWN` folder, including both the downcast and the
+   upcast.
+8. Decide whether to check the conductivity and oxygen alignment values
+   (step 9) or use the default alignment values (step 10).
+9. Run `experiment_TC_delays.sh` and `experiment_O_delays.sh` to test the
+   temperature-conductivity and oxygen alignment values. Review the results
+   with `plot_alignment.py`.
+10. If the downcast was not detected properly for any stations, copy the data
+    for those stations from the `UPDOWN` folder to the `CNV` folder.
+11. Run the conversion once more in the `CNV` folder, using the modified
+    alignment values or the new data files from `UPDOWN`.
+
+```mermaid
+flowchart TD
+    S1["1. Initialize cruise folder<br/>init_cruise_folder.sh"]
+    S2["2. Copy original cast files to CNV"]
+    S3["3. Check field notes / data sheet<br/>and rename files if necessary"]
+    S4["4. Check naming convention<br/>cruise_Stn.station_castnumber"]
+    S5["5. Convert downcast in CNV<br/>(SBE Data Processing, include pump status)"]
+    S6["6. Run pump_status_report.py"]
+    D6{"Downcast detected<br/>properly for all stations?"}
+    S7["7. Convert down- and upcast in UPDOWN<br/>for affected stations"]
+    D8{"8. Check alignment values?"}
+    S9["9. Run experiment_TC_delays.sh and<br/>experiment_O_delays.sh, review with plot_alignment.py"]
+    D10{"Stations converted<br/>in UPDOWN?"}
+    S10["10. Copy those stations from UPDOWN to CNV"]
+    S11["11. Rerun conversion in CNV"]
+
+    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> D6
+    D6 -- Yes --> D8
+    D6 -- No --> S7 --> D8
+    D8 -- Yes --> S9 --> D10
+    D8 -- "No, use defaults" --> D10
+    D10 -- Yes --> S10 --> S11
+    D10 -- No --> S11
+```
+
 ## Run
 
 ```powershell
