@@ -152,18 +152,18 @@ for DELAY in $DELAYS; do
 	perl -pi -e 's{(<OutputDir\b[^>]*value=")[^"]*(")}{$1 . $ENV{derive_outdir} . $2}e' Derive.psa
 
 	# get a master xmlcon config file if found:
-	shopt -s nullglob nocaseglob
-	files=( "$delay_dir"/05-loop/*master*.xmlcon )
-	if ((${#files[@]} > 0)); then
-		master_file="${files[0]}"
-		echo "$master_file"
-		win_master_cfg=$(to_windows_path "$master_file") || exit 1
-		export win_master_cfg
-		perl -pi -e 's{(<InstrumentPath\b[^>]*value=")[^"]*(")}{$1 . $ENV{win_master_cfg} . $2}e' Derive.psa
-	else
-		echo "No master .xmlcon file found"
-	fi
-	shopt -u nullglob nocaseglob
+	## shopt -s nullglob nocaseglob
+	## files=( "$delay_dir"/05-loop/*master*.xmlcon )
+	## if ((${#files[@]} > 0)); then
+	##	master_file="${files[0]}"
+	##	echo "$master_file"
+	##	win_master_cfg=$(to_windows_path "$master_file") || exit 1
+	##	export win_master_cfg
+	##	perl -pi -e 's{(<InstrumentPath\b[^>]*value=")[^"]*(")}{$1 . $ENV{win_master_cfg} . $2}e' Derive.psa
+	##else
+	##	echo "No master .xmlcon file found"
+	##fi
+	##shopt -u nullglob nocaseglob
 
 	# modify batch template file
 	sed -i "s/_CRUISEDIR_/$win_cruise_dir/g" batch.txt
