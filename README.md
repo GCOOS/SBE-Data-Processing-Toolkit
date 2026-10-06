@@ -236,13 +236,21 @@ terminal (WSL, Git Bash, MSYS2, or Cygwin on Windows) from the directory that
 contains the cruise folder, giving the cruise folder name as the argument:
 
 ```bash
-bash experiment_TC_delays.sh <cruise_name>
+bash experiment_TC_delays.sh <cruise_name> [<start_delay> <end_delay> <number_of_values>]
 ```
 
-For example:
+The optional delay arguments are in seconds. The tested values are spread
+evenly from the start delay to the end delay, including both. Give all three
+or none. Without them, the script tests 4 values from 0.03 to 0.09 seconds
+(0.03, 0.05, 0.07, 0.09). The Sea-Bird default for conductivity is
+0.073 seconds.
+
+For example, to use the default values, or to test 5 values from 0.06 to 0.08
+seconds (0.06, 0.065, 0.07, 0.075, 0.08):
 
 ```bash
 bash experiment_TC_delays.sh HG26139
+bash experiment_TC_delays.sh HG26139 0.06 0.08 5
 ```
 
 The script needs the Sea-Bird batch program `SBEBatch.exe` to be available
@@ -265,13 +273,19 @@ alignment values. Run it the same way as the conductivity experiment, in a bash
 terminal from the directory that contains the cruise folder:
 
 ```bash
-bash experiment_O_delays.sh <cruise_name>
+bash experiment_O_delays.sh <cruise_name> [<start_delay> <end_delay> <number_of_values>]
 ```
 
-For example:
+The optional delay arguments work the same way as for the conductivity
+experiment. Without them, the script tests 5 values from 2 to 6 seconds
+(2.0, 3.0, 4.0, 5.0, 6.0). The Sea-Bird default for oxygen is 3.5 seconds.
+
+For example, to use the default values, or to test 5 values from 2 to 3
+seconds (2.0, 2.25, 2.5, 2.75, 3.0):
 
 ```bash
 bash experiment_O_delays.sh HG26139
+bash experiment_O_delays.sh HG26139 2 3 5
 ```
 
 Like the conductivity experiment, it needs `SBEBatch.exe` and copies the

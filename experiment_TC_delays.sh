@@ -37,11 +37,48 @@ to_windows_path() {
 	printf '%s:%s\n' "${drive^^}" "${rest:-\\}"
 }
 
-### Cruise name as parameter
-# 1. Check if the argument was provided
+# SBE911Plus default alignment for Conductivity is 0.073 seconds.
+# The default experiment range brackets it.
+DEFAULT_START=0.03
+DEFAULT_END=0.09
+DEFAULT_COUNT=4
+
+usage() {
+	echo "Usage: $0 <cruise_folder_name> [<start_delay> <end_delay> <number_of_values>]"
+	echo "  Delays are in seconds. The tested values are spread evenly from start to end,"
+	echo "  including both. Default: $DEFAULT_START to $DEFAULT_END with $DEFAULT_COUNT values."
+}
+
+### Cruise name and optional delay range as parameters
+# 1. Check the arguments
 if [ -z "$1" ]; then
 	echo "Error: No folder name provided."
-	echo "Usage: $0 <cruise_folder_name>"
+	usage
+	exit 1
+fi
+if [ $# -ne 1 ] && [ $# -ne 4 ]; then
+	echo "Error: Give the cruise folder name alone, or followed by the start delay, end delay, and number of values."
+	usage
+	exit 1
+fi
+start_delay="${2:-$DEFAULT_START}"
+end_delay="${3:-$DEFAULT_END}"
+delay_count="${4:-$DEFAULT_COUNT}"
+number_pattern='^-?([0-9]+([.][0-9]*)?|[.][0-9]+)$'
+for value in "$start_delay" "$end_delay"; do
+	if [[ ! $value =~ $number_pattern ]]; then
+		echo "Error: '$value' is not a valid delay value."
+		usage
+		exit 1
+	fi
+done
+if [[ ! $delay_count =~ ^[1-9][0-9]*$ ]]; then
+	echo "Error: The number of values must be a positive whole number, not '$delay_count'."
+	usage
+	exit 1
+fi
+if ((delay_count == 1)) && LC_ALL=C awk -v s="$start_delay" -v e="$end_delay" 'BEGIN { exit !(s + 0 != e + 0) }'; then
+	echo "Error: With one value, the start and end delays must be the same."
 	exit 1
 fi
 # 2. Check if it exists as a directory in the current folder
@@ -76,11 +113,17 @@ if ((${#psa_files[@]} == 0)); then
 fi
 
 
-# SBE911Plus default alignment for Conductivity is 0.073 seconds.
-# Experiment around it:
-
-#DELAYS=$(seq -f "%.6f" 0.072 0.012 0.12)
-DELAYS=$(seq -f "%.6f" 0.03 0.02 0.1)
+DELAYS=$(LC_ALL=C awk -v s="$start_delay" -v e="$end_delay" -v n="$delay_count" 'BEGIN {
+	for (i = 0; i < n; i++) {
+		v = (n == 1) ? s : s + (e - s) * i / (n - 1)
+		printf "%.6f\n", v
+	}
+}')
+if [ -n "$(printf '%s\n' $DELAYS | sort | uniq -d)" ]; then
+	echo "Error: The delay values are too close together to tell apart: $(echo $DELAYS)"
+	exit 1
+fi
+echo "Conductivity delays to test (seconds): $(echo $DELAYS)"
 
 # cp -pr would nest TEMPLATE inside an existing folder, and batch.txt
 # placeholders would already be replaced, so earlier results must be removed.
