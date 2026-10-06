@@ -11,11 +11,41 @@ files as interactive plots.
 
 ## Installation
 
-Install the Python packages used by the scripts and apps:
+The scripts and apps need Python 3 with the packages listed in
+`requirements.txt`. Install them in a virtual environment so they stay
+separate from other Python projects. Run these commands in this folder. The
+environment name `.venv` is only an example.
+
+In Windows PowerShell:
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
 ```
+
+If PowerShell refuses to run `Activate.ps1`, allow local scripts for your user
+once with `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`, then activate
+again.
+
+In bash on WSL or Linux:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+In Git Bash on Windows, the activation script is in a different folder:
+
+```bash
+python -m venv .venv
+source .venv/Scripts/activate
+python -m pip install -r requirements.txt
+```
+
+Activate the environment again in each new terminal before running the scripts.
+Run `deactivate` to leave it.
 
 ## Recommended CTD conversion workflow
 
