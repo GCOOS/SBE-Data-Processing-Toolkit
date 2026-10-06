@@ -39,9 +39,9 @@ to_windows_path() {
 
 # SBE911Plus default alignment for Conductivity is 0.073 seconds.
 # The default experiment range brackets it.
-DEFAULT_START=0.03
+DEFAULT_START=0.045
 DEFAULT_END=0.09
-DEFAULT_COUNT=4
+DEFAULT_COUNT=6
 
 usage() {
 	echo "Usage: $0 <cruise_folder_name> [<start_delay> <end_delay> <number_of_values>]"
