@@ -1,82 +1,111 @@
-# CTD Profile Explorer
+# Seabird CTD Data Processing Toolkit
 
-This Dash app finds `.cnv` files in `OUT/*/06-drv`, presents the filenames
-shared by all folders once, and creates one interactive pressure profile per
-folder directly under `OUT`.
+This project contains scripts and interactive apps for converting and checking
+Sea-Bird CTD cast data from SFER cruises. It supports the full workflow, from
+preparing a cruise folder and checking file names to processing casts with the
+Sea-Bird SBE Data Processing software. The tools help find casts where
+downcast detection kept too little data, using pump status or by comparing
+downcast-only and down-and-upcast conversions. They also let you test and
+compare conductivity and oxygen alignment values, and browse the converted CNV
+files as interactive plots.
 
-## CTD conversion workflow
+## Installation
+
+Install the Python packages used by the scripts and apps:
+
+```powershell
+python -m pip install -r requirements.txt
+```
+
+## Recommended CTD conversion workflow
+
+### Prepare the cruise folder
+
+Do these steps for both options below.
 
 1. Initialize the cruise folder for conversion with `init_cruise_folder.sh`.
 2. Copy the original CTD cast files to the `CNV` directory.
 3. Read the cruise field notes or data sheet, and rename the files in the
-   `CNV` folder if necessary.
+  `CNV` folder if necessary.
 4. Make sure the filenames follow the naming convention
-   `<cruise_name>_Stn.<station_name>_<running_cast_order_number>`.
-5. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
-   Processing software, processing only the downcast. Include the pump status
+  `<cruise_name>_Stn.<station_name>[_running_cast_number]`. Running cast number is optional in this SW, except when necessary to separate two or more casts at the same station.
+
+Then choose one of the two options.
+
+### Option 1: Use the default alignment values
+
+Use this option if the default conductivity and oxygen alignment values are
+good enough.
+
+1. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
+  Processing software, including both the downcast and the upcast.
+
+No other steps are needed.
+
+### Option 2: Find the best alignment values
+
+Use this option to test and choose the conductivity and oxygen alignment
+values.
+
+1. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
+  Processing software, processing only the downcast. Include the pump status
    variable if it is available.
-6. Run `pump_status_report.py` (see [Command-line pump report](#command-line-pump-report))
-   to check whether the Sea-Bird software kept too little data for any file
-   when it detected the downcast.
-7. For stations where the downcast was not detected properly, run the
-   conversion in the `UPDOWN` folder, including both the downcast and the
-   upcast.
-8. Decide whether to check the conductivity and oxygen alignment values
-   (step 9) or use the default alignment values (step 10).
-9. Run `experiment_TC_delays.sh` and `experiment_O_delays.sh` to test the
+2. Check whether the Sea-Bird software kept too little data for any file when
+  it detected the downcast:
+  - **If the pump status variable is available,** run
+  `pump_status_report.py` (see
+  [Command-line pump report](#command-line-pump-report)).
+  - **If pump status is not available,** run at least the first (Convert)
+  step of the Sea-Bird Data Conversion software in the `UPDOWN` folder,
+  including both the downcast and the upcast. Then run
+  `compare_cnv_lengths.py` (see
+  [Compare CNV data lengths](#compare-cnv-data-lengths)) to find downcast
+  files in the `CNV` folder that are probably too short.
+3. For stations where the downcast was not detected properly, run the
+  conversion in the `UPDOWN` folder, including both the downcast and the
+   upcast. If you already ran only the Convert step there in step 2, run the
+   remaining processing steps for those stations.
+4. If the downcast was not detected properly for any stations, copy the data
+  for those stations from the `UPDOWN` folder to the `CNV` folder.
+5. Run `experiment_TC_delays.sh` (see
+   [Conductivity alignment experiment](#conductivity-alignment-experiment))
+   and `experiment_O_delays.sh` (see
+   [Oxygen alignment experiment](#oxygen-alignment-experiment)) to test the
    temperature-conductivity and oxygen alignment values. Review the results
    with `plot_alignment.py`.
-10. If the downcast was not detected properly for any stations, copy the data
-    for those stations from the `UPDOWN` folder to the `CNV` folder.
-11. Run the conversion once more in the `CNV` folder, using the modified
-    alignment values or the new data files from `UPDOWN`.
+6. Run the conversion once more in the `CNV` folder, using the chosen
+  alignment values and any new data files from `UPDOWN`.
 
 ```mermaid
 flowchart TD
-    S1["1. Initialize cruise folder<br/>init_cruise_folder.sh"]
-    S2["2. Copy original cast files to CNV"]
-    S3["3. Check field notes / data sheet<br/>and rename files if necessary"]
-    S4["4. Check naming convention<br/>cruise_Stn.station_castnumber"]
-    S5["5. Convert downcast in CNV<br/>(SBE Data Processing, include pump status)"]
-    S6["6. Run pump_status_report.py"]
-    D6{"Downcast detected<br/>properly for all stations?"}
-    S7["7. Convert down- and upcast in UPDOWN<br/>for affected stations"]
-    D8{"8. Check alignment values?"}
-    S9["9. Run experiment_TC_delays.sh and<br/>experiment_O_delays.sh, review with plot_alignment.py"]
-    D10{"Stations converted<br/>in UPDOWN?"}
-    S10["10. Copy those stations from UPDOWN to CNV"]
-    S11["11. Rerun conversion in CNV"]
+    P1["Initialize cruise folder<br/>init_cruise_folder.sh"]
+    P2["Copy original cast files to CNV"]
+    P3["Check field notes / data sheet<br/>and rename files if necessary"]
+    P4["Check naming convention<br/>cruise_Stn.station_castnumber"]
+    CHOICE{"Alignment values?"}
 
-    S1 --> S2 --> S3 --> S4 --> S5 --> S6 --> D6
-    D6 -- Yes --> D8
-    D6 -- No --> S7 --> D8
-    D8 -- Yes --> S9 --> D10
-    D8 -- "No, use defaults" --> D10
-    D10 -- Yes --> S10 --> S11
-    D10 -- No --> S11
+    A1["Option 1, step 1:<br/>Convert down- and upcast in CNV"]
+    DONE1["Done"]
+
+    B1["Option 2, step 1: Convert downcast in CNV<br/>(include pump status)"]
+    BP{"Step 2: Pump status<br/>available?"}
+    B2A["Run pump_status_report.py"]
+    B2B["Run Convert step in UPDOWN<br/>(down- and upcast),<br/>then run compare_cnv_lengths.py"]
+    BD2{"Downcast detected<br/>properly for all stations?"}
+    B3["Step 3: Convert down- and upcast<br/>in UPDOWN for affected stations"]
+    B4["Step 4: Copy those stations<br/>from UPDOWN to CNV"]
+    B5["Step 5: Run experiment_TC_delays.sh and<br/>experiment_O_delays.sh, review with plot_alignment.py"]
+    B6["Step 6: Rerun conversion in CNV<br/>with chosen alignment values"]
+
+    P1 --> P2 --> P3 --> P4 --> CHOICE
+    CHOICE -- "Option 1: defaults" --> A1 --> DONE1
+    CHOICE -- "Option 2: find best values" --> B1 --> BP
+    BP -- Yes --> B2A --> BD2
+    BP -- No --> B2B --> BD2
+    BD2 -- Yes --> B5
+    BD2 -- No --> B3 --> B4 --> B5
+    B5 --> B6
 ```
-
-## Run
-
-```powershell
-python -m pip install -r requirements.txt
-python plot_alignment.py "D:\path\to\alignment-root"
-```
-
-The path can be an alignment folder that directly contains
-`OUT/*/06-drv`, or a parent whose immediate subfolders contain that structure.
-If several matching subfolders are found, the app lists them in the terminal
-and prompts you to select one by number. If the path is omitted, the app uses
-the directory containing `plot_alignment.py`.
-
-Open the local address printed in the terminal, normally
-<http://127.0.0.1:8050>.
-
-Select one CNV filename, the number of initial scans to discard, and up to
-five variables. The same selections are applied to every folder plot. Pressure
-is plotted downward, and each selected variable has its own x-axis scale.
-The **Custom X/Y axes** tab lets you select one X variable and one Y variable
-for a single-axis plot of each alignment folder. Its Y axis is inverted.
 
 ## Pump status report
 
@@ -91,7 +120,7 @@ app. The app discovers CNV files only beneath this search root. Custom paths
 must also be inside it; relative custom paths are resolved from the search
 root.
 
-Open <http://127.0.0.1:8051>. Select a discovered CNV folder or enter a custom
+Open [http://127.0.0.1:8051](http://127.0.0.1:8051). Select a discovered CNV folder or enter a custom
 path, then select **Analyze folder**. The report separates files whose pump
 status contains only zeroes from files containing a value of one. For pump-on
 files, the results table shows the first zero-to-one transition index, pressure
@@ -145,8 +174,9 @@ python compare_cnv_lengths.py "D:\path\to\cruise-folder"
 
 The tab-separated output shows both row counts side by side, their signed row
 difference, and the `CNV/01-cnv` length as a percentage of the corresponding
-`UPDOWN/01-cnv` length. Results with the smallest relative CNV length are shown
-first. Filename matching is case-insensitive.
+`UPDOWN/01-cnv` length. The last column shows the maximum pressure (`prDM`) in
+the `UPDOWN/01-cnv` file. Results with the smallest relative CNV length are
+shown first. Filename matching is case-insensitive.
 
 ## CNV file viewer
 
@@ -156,7 +186,7 @@ Run the searchable CNV visualization app with:
 python plot_cnv_files.py "D:\path\to\cnv-directory"
 ```
 
-Open <http://127.0.0.1:8053>. Files beneath the supplied folder are ordered by
+Open [http://127.0.0.1:8053](http://127.0.0.1:8053). Files beneath the supplied folder are ordered by
 data length, shortest first, in the left sidebar. Select a filename, search the
 list, or use **Next file** to cycle through files. Each included variable is
 plotted against the zero-based data index in its own vertically stacked plot.
@@ -182,7 +212,7 @@ below the selected folder.
 python plot_single_folder.py
 ```
 
-Open <http://127.0.0.1:8052>. The app does not search for CNV files when it
+Open [http://127.0.0.1:8052](http://127.0.0.1:8052). The app does not search for CNV files when it
 starts and does not select a folder automatically. Select any folder from the
 subfolder tree, including folders nested at arbitrary depth, or enter a custom
 folder path. Select **Load folder** to find the CNV files directly inside that
@@ -197,3 +227,91 @@ accepted.
 
 The inverted y-axis can be switched between pressure and the original
 zero-based data-row index. The original `plot_alignment.py` is unchanged.
+
+## Conductivity alignment experiment
+
+`experiment_TC_delays.sh` reprocesses a cruise with several
+conductivity alignment values so you can compare the results. Run it in a bash
+terminal (WSL, Git Bash, MSYS2, or Cygwin on Windows) from the directory that
+contains the cruise folder, giving the cruise folder name as the argument:
+
+```bash
+bash experiment_TC_delays.sh <cruise_name>
+```
+
+For example:
+
+```bash
+bash experiment_TC_delays.sh HG26139
+```
+
+The script needs the Sea-Bird batch program `SBEBatch.exe` to be available
+from the terminal. It copies the `.psa` files from the cruise's `CNV` folder
+and the `.xmlcon` files from `CNV/05-loop`, so the downcast conversion in
+`CNV` must already be done. Each tested alignment value gets its own folder
+under `<cruise_name>/ALIGN_TC/OUT/`. Compare those folders with the
+[Alignment profile explorer](#alignment-profile-explorer).
+
+The script stops with an error if `SBEBatch.exe` is not on the PATH, or if any
+of its output folders already exist under `ALIGN_TC/OUT/`. Remove or rename
+earlier results before rerunning it.
+
+The earlier WSL-only version is kept as `experiment_TC_delays_obsolete.sh`.
+
+## Oxygen alignment experiment
+
+`experiment_O_delays.sh` reprocesses a cruise with several oxygen
+alignment values. Run it the same way as the conductivity experiment, in a bash
+terminal from the directory that contains the cruise folder:
+
+```bash
+bash experiment_O_delays.sh <cruise_name>
+```
+
+For example:
+
+```bash
+bash experiment_O_delays.sh HG26139
+```
+
+Like the conductivity experiment, it needs `SBEBatch.exe` and copies the
+`.psa` and `.xmlcon` files from the cruise's `CNV` folder. Its input data come
+from `<cruise_name>/UPDOWN/01-cnv`, so the Convert step must already be done in
+`UPDOWN` for all casts, including both the downcast and the upcast. Each tested
+alignment value gets its own folder under `<cruise_name>/ALIGN_O/OUT/`, which
+you can compare with the
+[Alignment profile explorer](#alignment-profile-explorer).
+
+The script stops with an error if `SBEBatch.exe` is not on the PATH, if
+`UPDOWN/01-cnv` contains no `.cnv` files, or if any of its output folders
+already exist under `ALIGN_O/OUT/`. Remove or rename earlier results before
+rerunning it.
+
+The earlier WSL-only version is kept as `experiment_O_delays_obsolete.sh`.
+
+## Alignment profile explorer
+
+Run the alignment comparison app with:
+
+```powershell
+python plot_alignment.py "D:\path\to\alignment-root"
+```
+
+The app finds `.cnv` files in `OUT/*/06-drv`, presents the filenames shared by
+all folders once, and creates one interactive pressure profile per folder
+directly under `OUT`.
+
+The path can be an alignment folder that directly contains
+`OUT/*/06-drv`, or a parent whose immediate subfolders contain that structure.
+If several matching subfolders are found, the app lists them in the terminal
+and prompts you to select one by number. If the path is omitted, the app uses
+the directory containing `plot_alignment.py`.
+
+Open the local address printed in the terminal, normally
+[http://127.0.0.1:8050](http://127.0.0.1:8050).
+
+Select one CNV filename, the number of initial scans to discard, and up to
+five variables. The same selections are applied to every folder plot. Pressure
+is plotted downward, and each selected variable has its own x-axis scale.
+The **Custom X/Y axes** tab lets you select one X variable and one Y variable
+for a single-axis plot of each alignment folder. Its Y axis is inverted.

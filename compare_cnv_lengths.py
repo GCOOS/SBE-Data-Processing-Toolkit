@@ -6,6 +6,8 @@ import os
 import sys
 from pathlib import Path, PureWindowsPath
 
+from cnv_file_summary import inspect_cnv
+
 
 def resolve_directory(directory_text: str) -> Path:
     directory_text = os.path.expandvars(directory_text.strip())
@@ -101,20 +103,23 @@ def main() -> int:
         parser.error(str(error))
 
     matching_names = cnv_files.keys() & updown_files.keys()
-    comparisons: list[tuple[float, str, int, int]] = []
+    comparisons: list[tuple[float, str, int, int, float | None]] = []
     had_errors = False
     for key in matching_names:
         cnv_path = cnv_files[key]
         updown_path = updown_files[key]
         try:
             cnv_length = cnv_data_length(cnv_path)
-            updown_length = cnv_data_length(updown_path)
+            _variables, updown_length, updown_max_pressure = inspect_cnv(
+                updown_path
+            )
             comparisons.append(
                 (
                     relative_length(cnv_length, updown_length),
                     cnv_path.name,
                     cnv_length,
                     updown_length,
+                    updown_max_pressure,
                 )
             )
         except (OSError, ValueError) as error:
@@ -125,13 +130,26 @@ def main() -> int:
 
     print(
         "File\tCNV/01-cnv rows\tUPDOWN/01-cnv rows\t"
-        "Row difference\tCNV length relative to UPDOWN"
+        "Row difference\tCNV length relative to UPDOWN\t"
+        "UPDOWN maximum pressure (prDM)"
     )
-    for relative, filename, cnv_length, updown_length in comparisons:
+    for (
+        relative,
+        filename,
+        cnv_length,
+        updown_length,
+        updown_max_pressure,
+    ) in comparisons:
         relative_text = "Infinity" if math.isinf(relative) else f"{relative:.2%}"
+        pressure_text = (
+            f"{updown_max_pressure:.7g}"
+            if updown_max_pressure is not None
+            else "Unavailable"
+        )
         print(
             f"{filename}\t{cnv_length}\t{updown_length}\t"
-            f"{updown_length - cnv_length:+d}\t{relative_text}"
+            f"{updown_length - cnv_length:+d}\t{relative_text}\t"
+            f"{pressure_text}"
         )
 
     only_cnv = sorted(
