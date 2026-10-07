@@ -20,7 +20,7 @@ files as interactive plots.
   [Installation](#installation).
 - **A bash terminal** with `perl`, `sed`, and `awk`, for the shell scripts
   (`init_cruise_folder.sh`, `experiment_TC_delays.sh`, and
-  `experiment_O_delays.sh`). They run in WSL, Git Bash, MSYS2, or Cygwin. Git
+  `experiment_O_delays.sh`). They run in WSL, Git Bash, MSYS2, Cygwin, and probably on many other flavors. Git
   Bash includes `perl`; in Cygwin, install the `perl` package.
 - **A web browser**, for the interactive apps (`plot_alignment.py`,
   `plot_cnv_files.py`, `plot_single_folder.py`, and `app_pump_status.py`).
