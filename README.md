@@ -9,6 +9,22 @@ downcast-only and down-and-upcast conversions. They also let you test and
 compare conductivity and oxygen alignment values, and browse the converted CNV
 files as interactive plots.
 
+## Software requirements
+
+- **Windows.** The Sea-Bird processing software runs only on Windows.
+- **Sea-Bird SBE Data Processing.** Used for all CTD conversions. The alignment
+  experiment scripts run its batch program, `SBEBatch.exe`, so the SBE Data
+  Processing installation folder must be on the `PATH` of the terminal.
+- **Python 3.10 or newer** (tested with 3.10.12), with the packages in
+  `requirements.txt` (`dash`, `pandas`, `plotly`). See
+  [Installation](#installation).
+- **A bash terminal** with `perl`, `sed`, and `awk`, for the shell scripts
+  (`init_cruise_folder.sh`, `experiment_TC_delays.sh`, and
+  `experiment_O_delays.sh`). They run in WSL, Git Bash, MSYS2, or Cygwin. Git
+  Bash includes `perl`; in Cygwin, install the `perl` package.
+- **A web browser**, for the interactive apps (`plot_alignment.py`,
+  `plot_cnv_files.py`, `plot_single_folder.py`, and `app_pump_status.py`).
+
 ## Installation
 
 The scripts and apps need Python 3 with the packages listed in
@@ -54,6 +70,11 @@ Run `deactivate` to leave it.
 Do these steps for both options below.
 
 1. Initialize the cruise folder for conversion with `init_cruise_folder.sh`.
+   Run it in a bash terminal from this directory:
+
+   ```bash
+   bash init_cruise_folder.sh HG26139
+   ```
 2. Copy the original CTD cast files to the `CNV` directory.
 3. Read the cruise field notes or data sheet, and rename the files in the
   `CNV` folder if necessary.
