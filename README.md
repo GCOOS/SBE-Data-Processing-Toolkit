@@ -13,17 +13,26 @@ files as interactive plots.
 
 - **Windows.** The Sea-Bird processing software runs only on Windows.
 - **Sea-Bird SBE Data Processing.** Used for all CTD conversions. The alignment
-  experiment scripts run its batch program, `SBEBatch.exe`, so the SBE Data
-  Processing installation folder must be on the `PATH` of the terminal.
-- **Python 3.10 or newer** (tested with 3.10.12), with the packages in
-  `requirements.txt` (`dash`, `pandas`, `plotly`). See
-  [Installation](#installation).
+experiment scripts run its batch program, `SBEBatch.exe`, so the SBE Data
+Processing installation folder must be on the `PATH` of the terminal.
+- **Python 3.11 or newer**, with the packages in 
+`requirements.txt` (`dash`, `pandas`, `plotly`). See [Installation](#installation).
 - **A bash terminal** with `perl`, `sed`, and `awk`, for the shell scripts
-  (`init_cruise_folder.sh`, `experiment_TC_delays.sh`, and
-  `experiment_O_delays.sh`). They run in WSL, Git Bash, MSYS2, Cygwin, and probably on many other flavors. Git
-  Bash includes `perl`; in Cygwin, install the `perl` package.
+(`init_cruise_folder.sh`, `experiment_TC_delays.sh`, and
+`experiment_O_delays.sh`). They run in WSL, Git Bash, MSYS2, Cygwin, and probably on many other flavors. Git
+Bash includes `perl`; in Cygwin, install the `perl` package.
 - **A web browser**, for the interactive apps (`plot_alignment.py`,
-  `plot_cnv_files.py`, `plot_single_folder.py`, and `app_pump_status.py`).
+`plot_cnv_files.py`, `plot_single_folder.py`, and `app_pump_status.py`).
+
+Documentation for the Sea-Bird SBE Data Processing software is in the `DOC`
+folder:
+
+- `SBE_Data_Processing_Training.pdf` page 335 covers conductivity alignment.
+- `SBE_Data_Processing_Training.pdf` page 343 covers oxygen alignment.
+- `SBE_parameters.xlsx` lists default values for several SBE Data Processing
+steps.
+
+
 
 ## Installation
 
@@ -63,18 +72,28 @@ python -m pip install -r requirements.txt
 Activate the environment again in each new terminal before running the scripts.
 Run `deactivate` to leave it.
 
+With conda, create an environment and choose the Python 3 version. The name
+`sbe-ctd` and the version `3.14` are only examples; use any unused environment name and any Python 3.11 or newer:
+
+```powershell
+conda create -n sbe-ctd python=3.14
+conda activate sbe-ctd
+python -m pip install -r requirements.txt
+```
+
+The same commands work in bash. Activate the conda environment again in each
+new terminal. Run `conda deactivate` to leave it.
+
 ## Recommended CTD conversion workflow
+
+
 
 ### Prepare the cruise folder
 
 Do these steps for both options below.
 
 1. Initialize the cruise folder for conversion with `init_cruise_folder.sh`.
-   Run it in a bash terminal from this directory:
-
-   ```bash
-   bash init_cruise_folder.sh HG26139
-   ```
+  Run it in a bash terminal from this directory:
 2. Copy the original CTD cast files to the `CNV` directory.
 3. Read the cruise field notes or data sheet, and rename the files in the
   `CNV` folder if necessary.
@@ -119,7 +138,7 @@ values.
 4. If the downcast was not detected properly for any stations, copy the data
   for those stations from the `UPDOWN` folder to the `CNV` folder.
 5. Run `experiment_TC_delays.sh` (see
-   [Conductivity alignment experiment](#conductivity-alignment-experiment))
+  [Conductivity alignment experiment](#conductivity-alignment-experiment))
    and `experiment_O_delays.sh` (see
    [Oxygen alignment experiment](#oxygen-alignment-experiment)) to test the
    temperature-conductivity and oxygen alignment values. Review the results
@@ -157,6 +176,10 @@ flowchart TD
     BD2 -- No --> B3 --> B4 --> B5
     B5 --> B6
 ```
+
+
+
+
 
 ## Inspect CNV file lengths
 
