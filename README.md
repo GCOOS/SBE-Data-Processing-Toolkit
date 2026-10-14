@@ -322,7 +322,7 @@ the directory containing `plot_alignment.py`.
 Open the local address printed in the terminal, normally
 [http://127.0.0.1:8050](http://127.0.0.1:8050).
 
-Select one CNV filename, the number of initial scans to discard, and up to
+Select one CNV filename, the scan range to keep, and up to
 five variables. The same selections are applied to every folder plot. Pressure
 is plotted downward, and each selected variable has its own x-axis scale.
 The **Custom X/Y axes** tab lets you select one X variable and one Y variable

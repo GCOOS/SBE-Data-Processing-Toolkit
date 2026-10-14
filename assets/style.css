@@ -49,10 +49,24 @@ label {
 
 .file-control {
   display: grid;
-  grid-template-columns: minmax(300px, 1fr) 230px;
+  grid-template-columns: minmax(300px, 1fr);
   align-items: end;
   gap: 16px;
   margin-bottom: 12px;
+}
+
+.scan-range-control {
+  padding: 16px 28px 28px;
+  border: 1px solid #dce3ec;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgb(15 23 42 / 5%);
+  margin-bottom: 12px;
+}
+
+.scan-range-control .rc-slider {
+  width: 100%;
+  margin: 8px 0 0;
 }
 
 .scan-control input {

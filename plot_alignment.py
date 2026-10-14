@@ -260,6 +260,68 @@ def common_columns(filename: str | None) -> tuple[list[str], dict[str, str]]:
     return variables, {column: labels[column] for column in variables}
 
 
+def file_scan_count(filename: str | None) -> int:
+    if not filename:
+        return 0
+    lengths = []
+    for driver in DATA_FOLDERS.values():
+        try:
+            lengths.append(len(load_folder_file(driver, filename).frame))
+        except Exception:
+            continue
+    return max(lengths) if lengths else 0
+
+
+def slider_marks(max_index: int) -> dict[int, str]:
+    if max_index <= 0:
+        return {0: "0"}
+    ticks = sorted(
+        {
+            0,
+            max_index // 4,
+            max_index // 2,
+            (3 * max_index) // 4,
+            max_index,
+        }
+    )
+    return {tick: f"{tick:,}" for tick in ticks}
+
+
+def slice_scans(
+    frame: pd.DataFrame,
+    scan_range: list[int] | tuple[int, int] | None,
+) -> pd.DataFrame:
+    count = len(frame)
+    if count == 0:
+        return frame
+    if not scan_range or len(scan_range) != 2:
+        start, end = 0, count - 1
+    else:
+        start, end = (int(scan_range[0]), int(scan_range[1]))
+    start = max(0, min(start, count - 1))
+    end = max(start, min(end, count - 1))
+    return frame.iloc[start:end + 1]
+
+
+def scan_range_status(
+    scan_range: list[int] | tuple[int, int] | None,
+    filename: str | None,
+) -> str:
+    max_index = max(0, file_scan_count(filename) - 1)
+    if not scan_range or len(scan_range) != 2:
+        start, end = 0, max_index
+    else:
+        start = max(0, min(int(scan_range[0]), max_index))
+        end = max(start, min(int(scan_range[1]), max_index))
+    dropped_start = start
+    dropped_end = max_index - end
+    return (
+        f"after keeping scans {start:,}–{end:,} "
+        f"(dropped {dropped_start:,} from the start and "
+        f"{dropped_end:,} from the end)"
+    )
+
+
 def default_variables(columns: list[str]) -> list[str | None]:
     preferred = ("t090C", "sal00", "sbeox0ML/L", "flECO-AFL", "CStarTr0")
     selected = [column for column in preferred if column in columns]
@@ -272,9 +334,9 @@ def make_figure(
     folder_name: str,
     dataset: CnvData,
     variables: list[str],
-    scans_to_drop: int = 0,
+    scan_range: list[int] | tuple[int, int] | None = None,
 ) -> go.Figure:
-    frame = dataset.frame.iloc[scans_to_drop:]
+    frame = slice_scans(dataset.frame, scan_range)
     pressure = find_pressure_column(list(frame.columns))
     valid_variables = [variable for variable in variables if variable in frame.columns]
 
@@ -355,9 +417,9 @@ def make_xy_figure(
     dataset: CnvData,
     x_variable: str,
     y_variable: str,
-    scans_to_drop: int = 0,
+    scan_range: list[int] | tuple[int, int] | None = None,
 ) -> go.Figure:
-    frame = dataset.frame.iloc[scans_to_drop:]
+    frame = slice_scans(dataset.frame, scan_range)
     if x_variable not in frame.columns or y_variable not in frame.columns:
         figure = go.Figure()
         figure.add_annotation(
@@ -418,6 +480,8 @@ def dropdown_options(columns: list[str], labels: dict[str, str]) -> list[dict[st
 
 def build_layout() -> html.Div:
     initial_filename = FILENAMES[0] if FILENAMES else None
+    initial_scan_count = file_scan_count(initial_filename)
+    initial_max_index = max(0, initial_scan_count - 1)
     try:
         initial_columns, initial_labels = common_columns(initial_filename)
         initial_variables = default_variables(initial_columns)
@@ -479,25 +543,31 @@ def build_layout() -> html.Div:
                         ],
                         className="filename-control",
                     ),
-                    html.Div(
-                        [
-                            html.Label(
-                                "Scans to drop from beginning",
-                                htmlFor="scans-to-drop",
-                            ),
-                            dcc.Input(
-                                id="scans-to-drop",
-                                type="number",
-                                value=0,
-                                min=0,
-                                step=1,
-                                debounce=True,
-                            ),
-                        ],
-                        className="scan-control",
-                    ),
                 ],
                 className="file-control",
+            ),
+            html.Div(
+                [
+                    html.Label(
+                        "Keep scans (drop data from the start and end)",
+                        htmlFor="scan-range",
+                    ),
+                    dcc.RangeSlider(
+                        id="scan-range",
+                        min=0,
+                        max=initial_max_index,
+                        step=1,
+                        value=[0, initial_max_index],
+                        allowCross=False,
+                        updatemode="mouseup",
+                        tooltip={
+                            "placement": "bottom",
+                            "always_visible": True,
+                        },
+                        marks=slider_marks(initial_max_index),
+                    ),
+                ],
+                className="scan-range-control",
             ),
             dcc.Tabs(
                 [
@@ -634,15 +704,26 @@ def update_custom_axis_controls(
 
 
 @app.callback(
+    Output("scan-range", "max"),
+    Output("scan-range", "value"),
+    Output("scan-range", "marks"),
+    Input("filename", "value"),
+)
+def update_scan_range(filename: str | None):
+    max_index = max(0, file_scan_count(filename) - 1)
+    return max_index, [0, max_index], slider_marks(max_index)
+
+
+@app.callback(
     Output("graphs", "children"),
     Output("status", "children"),
     Input("filename", "value"),
-    Input("scans-to-drop", "value"),
+    Input("scan-range", "value"),
     [Input(f"variable-{index}", "value") for index in range(VARIABLE_COUNT)],
 )
 def update_graphs(
     filename: str | None,
-    scans_to_drop: int | float | None,
+    scan_range: list[int] | None,
     *selected_variables: str | None,
 ):
     if not DATA_FOLDERS:
@@ -652,7 +733,6 @@ def update_graphs(
     if not filename:
         return [], "Select a CNV file."
 
-    drop_count = max(0, int(scans_to_drop or 0))
     variables = list(dict.fromkeys(value for value in selected_variables if value))
     graph_components = []
     errors = []
@@ -661,7 +741,7 @@ def update_graphs(
         try:
             source_path = driver / filename
             dataset = load_folder_file(driver, filename)
-            figure = make_figure(folder_name, dataset, variables, drop_count)
+            figure = make_figure(folder_name, dataset, variables, scan_range)
             graph_components.append(
                 html.Div(
                     [
@@ -689,7 +769,7 @@ def update_graphs(
         (
             f"Showing {filename} in {len(graph_components)} folders "
             f"from {len(graph_components)} distinct source paths "
-            f"after dropping {drop_count:,} scans."
+            f"{scan_range_status(scan_range, filename)}."
         )
         if not errors
         else "Could not load " + "; ".join(errors)
@@ -701,13 +781,13 @@ def update_graphs(
     Output("custom-axis-graphs", "children"),
     Output("custom-axis-status", "children"),
     Input("filename", "value"),
-    Input("scans-to-drop", "value"),
+    Input("scan-range", "value"),
     Input("custom-x-variable", "value"),
     Input("custom-y-variable", "value"),
 )
 def update_custom_axis_graphs(
     filename: str | None,
-    scans_to_drop: int | float | None,
+    scan_range: list[int] | None,
     x_variable: str | None,
     y_variable: str | None,
 ):
@@ -720,7 +800,6 @@ def update_custom_axis_graphs(
     if not x_variable or not y_variable:
         return [], "Select both an X variable and a Y variable."
 
-    drop_count = max(0, int(scans_to_drop or 0))
     graph_components = []
     errors = []
     for folder_name, driver in DATA_FOLDERS.items():
@@ -732,7 +811,7 @@ def update_custom_axis_graphs(
                 dataset,
                 x_variable,
                 y_variable,
-                drop_count,
+                scan_range,
             )
             graph_components.append(
                 html.Div(
@@ -763,8 +842,8 @@ def update_custom_axis_graphs(
     status = (
         (
             f"Showing {x_variable} versus {y_variable} for {filename} in "
-            f"{len(graph_components)} folders after dropping "
-            f"{drop_count:,} scans."
+            f"{len(graph_components)} folders "
+            f"{scan_range_status(scan_range, filename)}."
         )
         if not errors
         else "Could not load " + "; ".join(errors)
