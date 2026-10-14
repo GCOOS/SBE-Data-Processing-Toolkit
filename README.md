@@ -220,11 +220,11 @@ folder name:
 python compare_cnv_lengths.py HG26139
 ```
 
-The tab-separated output shows both row counts side by side, their signed row
-difference, and the `CNV/01-cnv` length as a percentage of the corresponding
-`UPDOWN/01-cnv` length. The last column shows the maximum pressure (`prDM`) in
-the `UPDOWN/01-cnv` file. Results with the smallest relative CNV length are
-shown first. Filename matching is case-insensitive.
+The tab-separated output shows the filename, then the `CNV/01-cnv` length as a
+percentage of the corresponding `UPDOWN/01-cnv` length, both row counts, their
+signed row difference, and the maximum pressure (`prDM`) in the
+`UPDOWN/01-cnv` file. Results with the smallest relative CNV length are shown
+first. Filename matching is case-insensitive.
 
 ## Conductivity alignment experiment
 

@@ -129,8 +129,8 @@ def main() -> int:
     comparisons.sort(key=lambda item: (item[0], item[1].casefold()))
 
     print(
-        "File\tCNV/01-cnv rows\tUPDOWN/01-cnv rows\t"
-        "Row difference\tCNV length relative to UPDOWN\t"
+        "File\tCNV length relative to UPDOWN\tCNV/01-cnv rows\t"
+        "UPDOWN/01-cnv rows\tRow difference\t"
         "UPDOWN maximum pressure (prDM)"
     )
     for (
@@ -147,9 +147,8 @@ def main() -> int:
             else "Unavailable"
         )
         print(
-            f"{filename}\t{cnv_length}\t{updown_length}\t"
-            f"{updown_length - cnv_length:+d}\t{relative_text}\t"
-            f"{pressure_text}"
+            f"{filename}\t{relative_text}\t{cnv_length}\t{updown_length}\t"
+            f"{updown_length - cnv_length:+d}\t{pressure_text}"
         )
 
     only_cnv = sorted(
