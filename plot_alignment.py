@@ -222,15 +222,77 @@ def load_folder_file(driver: Path, filename: str) -> CnvData:
     return load_cnv(str(path), path.stat().st_mtime_ns)
 
 
-def find_pressure_column(columns: list[str]) -> str | None:
-    preferred = ("prDM", "pressure", "Pressure", "prdM")
+def find_named_column(
+    columns: list[str],
+    preferred: tuple[str, ...],
+    *matchers: tuple[str, ...],
+) -> str | None:
     for candidate in preferred:
         if candidate in columns:
             return candidate
-    return next(
-        (column for column in columns if "pressure" in column.casefold()),
-        None,
+        match = next(
+            (column for column in columns if column.casefold() == candidate.casefold()),
+            None,
+        )
+        if match is not None:
+            return match
+    for matcher in matchers:
+        match = next(
+            (
+                column
+                for column in columns
+                if all(part in column.casefold() for part in matcher)
+            ),
+            None,
+        )
+        if match is not None:
+            return match
+    return None
+
+
+def find_pressure_column(columns: list[str]) -> str | None:
+    return find_named_column(
+        columns,
+        ("prDM", "prdM", "pressure", "Pressure"),
+        ("pressure",),
     )
+
+
+def find_oxygen_ml_column(columns: list[str]) -> str | None:
+    return find_named_column(
+        columns,
+        ("sbeox0ML/L", "sbeox1ML/L", "oxymL/L", "sbox0Ml/L"),
+        ("sbeox", "ml/l"),
+        ("sbeox", "ml-l"),
+        ("oxy", "ml/l"),
+        ("oxygen", "ml/l"),
+        ("oxygen", "ml-l"),
+    )
+
+
+def find_temperature_column(columns: list[str]) -> str | None:
+    return find_named_column(
+        columns,
+        ("t090C", "t190C", "tv290C"),
+        ("t090c",),
+        ("temperature",),
+    )
+
+
+def default_xy_variables(columns: list[str]) -> tuple[str | None, str | None]:
+    default_x = find_oxygen_ml_column(columns)
+    default_y = find_temperature_column(columns)
+    if default_x is None:
+        default_x = next(
+            (column for column in columns if column != default_y),
+            default_y,
+        )
+    if default_y is None:
+        default_y = next(
+            (column for column in columns if column != default_x),
+            default_x,
+        )
+    return default_x, default_y
 
 
 def common_axis_columns(filename: str | None) -> tuple[list[str], dict[str, str]]:
@@ -488,18 +550,7 @@ def build_layout() -> html.Div:
         options = dropdown_options(initial_columns, initial_labels)
         axis_columns, axis_labels = common_axis_columns(initial_filename)
         axis_options = dropdown_options(axis_columns, axis_labels)
-        initial_y = find_pressure_column(axis_columns)
-        initial_x = next(
-            (
-                variable
-                for variable in initial_variables
-                if variable is not None and variable != initial_y
-            ),
-            next(
-                (column for column in axis_columns if column != initial_y),
-                None,
-            ),
-        )
+        initial_x, initial_y = default_xy_variables(axis_columns)
     except Exception:
         initial_variables = [None] * VARIABLE_COUNT
         options = []
@@ -689,13 +740,7 @@ def update_custom_axis_controls(
     try:
         columns, labels = common_axis_columns(filename)
         options = dropdown_options(columns, labels)
-        default_y = find_pressure_column(columns)
-        if default_y is None and columns:
-            default_y = columns[0]
-        default_x = next(
-            (column for column in columns if column != default_y),
-            default_y,
-        )
+        default_x, default_y = default_xy_variables(columns)
         x_value = current_x if current_x in columns else default_x
         y_value = current_y if current_y in columns else default_y
         return options, x_value, options, y_value

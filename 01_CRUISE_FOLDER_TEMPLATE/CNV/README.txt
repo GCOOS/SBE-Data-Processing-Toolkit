@@ -2,4 +2,4 @@
 2) Also copy the .xmlcon files to 05-loop.
 3) Save the Seabird SBEDataProcessing SW project files (.psa) for each conversion step at root of this folder.
 4) Modify the batch file to make the paths match the current cruise directory
-
+5) Always convert both the downcast and the upcast here. The alignment experiment scripts read their input .cnv files, .psa files, and .xmlcon files from this folder.

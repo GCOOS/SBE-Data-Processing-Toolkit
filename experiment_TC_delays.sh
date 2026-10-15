@@ -102,6 +102,7 @@ win_cruise_dir="${win_path_cruise_dir//\\/\\\\}"
 shopt -s nullglob nocaseglob
 xmlcon_files=( "$cruisedir"/CNV/05-loop/*.xmlcon )
 psa_files=( "$cruisedir"/CNV/*.psa )
+cnv_files=( "$cruisedir"/CNV/02-flt/*.cnv )
 shopt -u nullglob nocaseglob
 if ((${#xmlcon_files[@]} == 0)); then
 	echo "Error: No .xmlcon files found in $cruisedir/CNV/05-loop."
@@ -109,6 +110,11 @@ if ((${#xmlcon_files[@]} == 0)); then
 fi
 if ((${#psa_files[@]} == 0)); then
 	echo "Error: No .psa files found in $cruisedir/CNV."
+	exit 1
+fi
+if ((${#cnv_files[@]} == 0)); then
+	echo "Error: No .cnv files found in $cruisedir/CNV/02-flt."
+	echo "Run the Convert and Filter steps in CNV (down- and upcast) first."
 	exit 1
 fi
 
@@ -150,16 +156,17 @@ for DELAY in $DELAYS; do
 	cp "${xmlcon_files[@]}" ./05-loop/
 	# 2) .psa files
 	cp "${psa_files[@]}" .
-	# not needed here
+	# not needed (using already converted files from CNV/02-flt ...) :
 	rm -f DatCnv.psa
 
 	# modify the input and output directories on the copied psa files
 	win_delaydir=$(to_windows_path "$delay_dir") || exit 1
 
 	# 1) AlignCTD.psa:
-	align_indir="$win_delaydir\02-flt"
+	# Take input files from the filtered down- and upcast files in CNV
+	align_indir="$win_path_cruise_dir\CNV\02-flt"
 	export align_indir
-	### CAN TAKE FROM ORIG CNV DIRECTORY!!! perl -pi -e 's{(<InputDir\b[^>]*value=")[^"]*(")}{$1 . $ENV{align_indir} . $2}e' AlignCTD.psa
+	perl -pi -e 's{(<InputDir\b[^>]*value=")[^"]*(")}{$1 . $ENV{align_indir} . $2}e' AlignCTD.psa
 	align_outdir="$win_delaydir\03-aln"
 	export align_outdir
 	perl -pi -e 's{(<OutputDir\b[^>]*value=")[^"]*(")}{$1 . $ENV{align_outdir} . $2}e' AlignCTD.psa

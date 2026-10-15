@@ -102,7 +102,7 @@ win_cruise_dir="${win_path_cruise_dir//\\/\\\\}"
 shopt -s nullglob nocaseglob
 xmlcon_files=( "$cruisedir"/CNV/05-loop/*.xmlcon )
 psa_files=( "$cruisedir"/CNV/*.psa )
-updown_cnv_files=( "$cruisedir"/UPDOWN/01-cnv/*.cnv )
+cnv_files=( "$cruisedir"/CNV/01-cnv/*.cnv )
 shopt -u nullglob nocaseglob
 if ((${#xmlcon_files[@]} == 0)); then
 	echo "Error: No .xmlcon files found in $cruisedir/CNV/05-loop."
@@ -112,9 +112,9 @@ if ((${#psa_files[@]} == 0)); then
 	echo "Error: No .psa files found in $cruisedir/CNV."
 	exit 1
 fi
-if ((${#updown_cnv_files[@]} == 0)); then
-	echo "Error: No .cnv files found in $cruisedir/UPDOWN/01-cnv."
-	echo "Run the Convert step in UPDOWN (down- and upcast) first."
+if ((${#cnv_files[@]} == 0)); then
+	echo "Error: No .cnv files found in $cruisedir/CNV/01-cnv."
+	echo "Run the Convert step in CNV (down- and upcast) first."
 	exit 1
 fi
 
@@ -161,15 +161,15 @@ for DELAY in $DELAYS; do
 	cp "${xmlcon_files[@]}" ./05-loop/
 	# 2) .psa files
 	cp "${psa_files[@]}" .
-	# not needed (using already converted files from UPDOWN ...) :
+	# not needed (using already converted files from CNV/01-cnv ...) :
 	rm -f DatCnv.psa
 
 	# modify the input and output directories on the copied psa files
 	win_delaydir=$(to_windows_path "$delay_dir") || exit 1
 
 	# 1) Filter.psa:
-	# Take input files from orig UPDOWN dir
-	filter_indir="$win_path_cruise_dir\UPDOWN\01-cnv"
+	# Take input files from the converted down- and upcast files in CNV
+	filter_indir="$win_path_cruise_dir\CNV\01-cnv"
 	export filter_indir
 	perl -pi -e 's{(<InputDir\b[^>]*value=")[^"]*(")}{$1 . $ENV{filter_indir} . $2}e' Filter.psa
 	filter_outdir="$win_delaydir\02-flt"

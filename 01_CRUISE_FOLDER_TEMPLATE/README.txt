@@ -3,23 +3,23 @@ FOLDER STRUCTURE:
 - CRUISE_ORIG_DATA:	Place original CTD cast related notes and documents from the cruise under NOTES.
 			Place raw CTD cast data, all files, CTD_DATA.
 
-- CNV: 			Used for processing the downcast data for the cruise. (Only downcast data is published on GCOOS ERDDAP.)
+- CNV: 			Used for processing the cruise data. ALWAYS convert both the downcast and the upcast here.
+			(Only downcast data is published on GCOOS ERDDAP, but converting both casts avoids losing
+			 data at shallow stations where the Seabird SW fails to detect the downcast reliably.)
 			OBS! The user may need to process the data more than once in this folder if the Conductivity, Oxygen 
 			alignment values need to be adjusted.
 		
-- UPDOWN: 		Used for processing the down- and upcast data for the cruise. 
-			This is not strictly necessary, but useful for two purposes:
-			1) Seabird SW fails to detect the downcast reliably in shallow stations, resulting in very short sample of data written out
-			2) For finding out the proper Oxygen signal alignment value (need to plot data from both down- and upcast)
+- UPDOWN: 		Optional scratch folder for separate down- and upcast processing experiments.
+			It is no longer part of the standard workflow, because CNV already contains both casts.
 
 - ALIGN_TC: 		Used for figuring out correct Conductivity alignment value.
-			Downcast data can be copied over to this folder from CNV folder.
+			Input data is read from the CNV/02-flt folder.
 			User needs to set up the .psa template files correctly first, see README.txt under this folder. 
 			The bash script "experiment_TC_delays.sh" under "01-CONVERT_WORKDIR" folder uses the templates
 			to batch process the data with several different alignment values.
 
 - ALIGN_O		Used for figuring out correct Oxygen (ml-l) alignment value. 
-			Down- and upcast data is required, and it can be copied from UPDOWN folder.
+			Down- and upcast data is required, and it is read from the CNV/01-cnv folder.
 			User needs to set up the .psa template files correctly first, see README.txt under this folder. 
 			The bash script "experiment_O_delays.sh" under "01-CONVERT_WORKDIR" folder uses the templates
 			to batch process the data with several different alignment values.
@@ -27,22 +27,17 @@ FOLDER STRUCTURE:
 
 SUGGESTED PROCESSING ORDER:
 ---------------------------
-1) Process downcast data with default alignment values under CNV folder. Make sure to include "pump status" variable!
-2) Use pump_status_report.py Python script under 01-CONVERT_WORKDIR to check if for any stations pump never turns on!
-	(because some sations are so shallow, there is no cast. Seabird SW sometimes only includes a few scans from 
-	 the beginning of the cast, before the pumps are even turned on.)
-	
-  -> IF REPORT SHOWS PUMPS NEVER TURN ON FOR SOME STATIONS:
-	- run up- and downcast data conversion under UPDOWN. Copy the .cnv files for the problem stations from 01-cnv from UPDOWN to 
-	  CNV, and re-run the downcast data processing under CNV to make sure even the shallow stations with no cast include valid data where pumps are on and sensors start producing valid
-          readings.
+1) Process the data under the CNV folder with default alignment values, ALWAYS including both the downcast
+   and the upcast. Make sure to include the "pump status" variable!
+2) Use pump_status_report.py Python script under 01-CONVERT_WORKDIR to review the data quality and to check
+	if for any stations the pump never turns on.
+	(because some stations are so shallow, there is no cast.)
 
 3) IF CONDUCTIVITY ALIGNMENT VALUE NEEDS TO BE EXPLORED: 
 	- prepare the ALIGN_TC folder according to instructions there
 	- run experiment_TC_delays.sh script according to the above instructions
 4) IF OXYGEN ALIGNMENT VALUE NEEDS TO BE EXPLORED: 
-	- first run up-and down conversion under UPDOWN folder
 	- prepare the ALIGN_O folder according to instructions there
 	- run experiment_O_delays.sh script according to the above instructions
 5) IF ANY ALIGNMENT VALUES NEEDED CHANGING / EXPLORING:
-
+	- re-run the conversion under CNV with the chosen values, again including both the downcast and the upcast

@@ -3,11 +3,10 @@
 This project contains scripts and interactive apps for converting and checking
 Sea-Bird CTD cast data from SFER cruises. It supports the full workflow, from
 preparing a cruise folder and checking file names to processing casts with the
-Sea-Bird SBE Data Processing software. The tools help find casts where
-downcast detection kept too little data, using pump status or by comparing
-downcast-only and down-and-upcast conversions. They also let you test and
-compare conductivity and oxygen alignment values, and browse the converted CNV
-files as interactive plots.
+Sea-Bird SBE Data Processing software. All casts are converted with both the
+downcast and the upcast in the `CNV` folder. The tools help review data
+quality with pump status, let you test and compare conductivity and oxygen
+alignment values, and browse the converted CNV files as interactive plots.
 
 ## Software requirements
 
@@ -99,52 +98,36 @@ Do these steps for both options below.
   `CNV` folder if necessary.
 4. Make sure the filenames follow the naming convention
   `<cruise_name>_Stn.<station_name>[_running_cast_number]`. Running cast number is optional in this SW, except when necessary to separate two or more casts at the same station.
+5. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
+  Processing software, **always including both the downcast and the upcast**.
+   Include the pump status variable if it is available. Keeping both casts in
+   `CNV` means no cast is lost to faulty downcast detection, and the alignment
+   experiments read their input from `CNV`.
 
 Then choose one of the two options.
 
 ### Option 1: Use the default alignment values
 
 Use this option if the default conductivity and oxygen alignment values are
-good enough.
-
-1. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
-  Processing software, including both the downcast and the upcast.
-
-No other steps are needed.
+good enough. No other steps are needed after preparing the cruise folder.
 
 ### Option 2: Find the best alignment values
 
 Use this option to test and choose the conductivity and oxygen alignment
 values.
 
-1. Convert all data in the `CNV` directory with the Sea-Bird SBE Data
-  Processing software, processing only the downcast. Include the pump status
-   variable if it is available.
-2. Check whether the Sea-Bird software kept too little data for any file when
-  it detected the downcast:
-  - **If the pump status variable is available,** run
-  `pump_status_report.py` (see
-  [Command-line pump report](#command-line-pump-report)).
-  - **If pump status is not available,** run at least the first (Convert)
-  step of the Sea-Bird Data Conversion software in the `UPDOWN` folder,
-  including both the downcast and the upcast. Then run
-  `compare_cnv_lengths.py` (see
-  [Compare CNV data lengths](#compare-cnv-data-lengths)) to find downcast
-  files in the `CNV` folder that are probably too short.
-3. For stations where the downcast was not detected properly, run the
-  conversion in the `UPDOWN` folder, including both the downcast and the
-   upcast. If you already ran only the Convert step there in step 2, run the
-   remaining processing steps for those stations.
-4. If the downcast was not detected properly for any stations, copy the data
-  for those stations from the `UPDOWN` folder to the `CNV` folder.
-5. Run `experiment_TC_delays.sh` (see
+1. If the pump status variable is available, run `pump_status_report.py` (see
+  [Command-line pump report](#command-line-pump-report)) to review the data
+   quality of the converted casts.
+2. Run `experiment_TC_delays.sh` (see
   [Conductivity alignment experiment](#conductivity-alignment-experiment))
    and `experiment_O_delays.sh` (see
    [Oxygen alignment experiment](#oxygen-alignment-experiment)) to test the
-   temperature-conductivity and oxygen alignment values. Review the results
+   temperature-conductivity and oxygen alignment values. Both read their
+   input, `.psa`, and `.xmlcon` files from the `CNV` folder. Review the results
    with `plot_alignment.py`.
-6. Run the conversion once more in the `CNV` folder, using the chosen
-  alignment values and any new data files from `UPDOWN`.
+3. Run the conversion once more in the `CNV` folder, using the chosen
+  alignment values and still including both the downcast and the upcast.
 
 ```mermaid
 flowchart TD
@@ -152,29 +135,18 @@ flowchart TD
     P2["Copy original cast files to CNV"]
     P3["Check field notes / data sheet<br/>and rename files if necessary"]
     P4["Check naming convention<br/>cruise_Stn.station_castnumber"]
+    P5["Convert down- and upcast in CNV<br/>(include pump status)"]
     CHOICE{"Alignment values?"}
 
-    A1["Option 1, step 1:<br/>Convert down- and upcast in CNV"]
     DONE1["Done"]
 
-    B1["Option 2, step 1: Convert downcast in CNV<br/>(include pump status)"]
-    BP{"Step 2: Pump status<br/>available?"}
-    B2A["Run pump_status_report.py"]
-    B2B["Run Convert step in UPDOWN<br/>(down- and upcast),<br/>then run compare_cnv_lengths.py"]
-    BD2{"Downcast detected<br/>properly for all stations?"}
-    B3["Step 3: Convert down- and upcast<br/>in UPDOWN for affected stations"]
-    B4["Step 4: Copy those stations<br/>from UPDOWN to CNV"]
-    B5["Step 5: Run experiment_TC_delays.sh and<br/>experiment_O_delays.sh, review with plot_alignment.py"]
-    B6["Step 6: Rerun conversion in CNV<br/>with chosen alignment values"]
+    B1["Step 1: Review data quality<br/>pump_status_report.py<br/>(if pump status available)"]
+    B2["Step 2: Run experiment_TC_delays.sh and<br/>experiment_O_delays.sh, review with plot_alignment.py"]
+    B3["Step 3: Rerun conversion in CNV<br/>with chosen alignment values"]
 
-    P1 --> P2 --> P3 --> P4 --> CHOICE
-    CHOICE -- "Option 1: defaults" --> A1 --> DONE1
-    CHOICE -- "Option 2: find best values" --> B1 --> BP
-    BP -- Yes --> B2A --> BD2
-    BP -- No --> B2B --> BD2
-    BD2 -- Yes --> B5
-    BD2 -- No --> B3 --> B4 --> B5
-    B5 --> B6
+    P1 --> P2 --> P3 --> P4 --> P5 --> CHOICE
+    CHOICE -- "Option 1: defaults" --> DONE1
+    CHOICE -- "Option 2: find best values" --> B1 --> B2 --> B3
 ```
 
 
@@ -183,10 +155,11 @@ flowchart TD
 
 ## Inspect CNV file lengths
 
-These scripts help find casts where the Sea-Bird software kept too little data
-when it detected the downcast. Use the pump status report if the files include
-the pump status variable. Otherwise, compare the downcast-only files with the
-down- and upcast files.
+Use the pump status report to review the data quality of the converted casts.
+`compare_cnv_lengths.py` is only needed for cruises that were converted the
+earlier way, with downcast-only files in `CNV` and down- and upcast files in
+`UPDOWN`. In the current workflow, `CNV` always holds both casts, so there is
+nothing to compare.
 
 ### Command-line pump report
 
@@ -212,7 +185,9 @@ is also available as an interactive app; see
 
 ### Compare CNV data lengths
 
-To compare matching filenames in `CNV/01-cnv` and `UPDOWN/01-cnv`, run the
+This script applies to cruises converted the earlier way, where `CNV` held
+downcast-only files and `UPDOWN` held the down- and upcast files. To compare
+matching filenames in `CNV/01-cnv` and `UPDOWN/01-cnv`, run the
 script from the directory that contains the cruise folder and give the cruise
 folder name:
 
@@ -253,14 +228,17 @@ bash experiment_TC_delays.sh HG26139 0.06 0.08 5
 
 The script needs the Sea-Bird batch program `SBEBatch.exe` to be available
 from the terminal. It copies the `.psa` files from the cruise's `CNV` folder
-and the `.xmlcon` files from `CNV/05-loop`, so the downcast conversion in
-`CNV` must already be done. Each tested alignment value gets its own folder
-under `<cruise_name>/ALIGN_TC/OUT/`. Compare those folders with the
+and the `.xmlcon` files from `CNV/05-loop`, and reads its input data from
+`CNV/02-flt`, so the Convert and Filter steps in `CNV` must already be done
+for all casts, including both the downcast and the upcast. Each tested
+alignment value gets its own folder under `<cruise_name>/ALIGN_TC/OUT/`.
+Compare those folders with the
 [Alignment profile explorer](#alignment-profile-explorer).
 
-The script stops with an error if `SBEBatch.exe` is not on the PATH, or if any
-of its output folders already exist under `ALIGN_TC/OUT/`. Remove or rename
-earlier results before rerunning it.
+The script stops with an error if `SBEBatch.exe` is not on the PATH, if
+`CNV/02-flt` contains no `.cnv` files, or if any of its output folders already
+exist under `ALIGN_TC/OUT/`. Remove or rename earlier results before rerunning
+it.
 
 The earlier WSL-only version is kept as `experiment_TC_delays_obsolete.sh`.
 
@@ -288,14 +266,14 @@ bash experiment_O_delays.sh HG26139 2 3 5
 
 Like the conductivity experiment, it needs `SBEBatch.exe` and copies the
 `.psa` and `.xmlcon` files from the cruise's `CNV` folder. Its input data come
-from `<cruise_name>/UPDOWN/01-cnv`, so the Convert step must already be done in
-`UPDOWN` for all casts, including both the downcast and the upcast. Each tested
+from `<cruise_name>/CNV/01-cnv`, so the Convert step must already be done in
+`CNV` for all casts, including both the downcast and the upcast. Each tested
 alignment value gets its own folder under `<cruise_name>/ALIGN_O/OUT/`, which
 you can compare with the
 [Alignment profile explorer](#alignment-profile-explorer).
 
 The script stops with an error if `SBEBatch.exe` is not on the PATH, if
-`UPDOWN/01-cnv` contains no `.cnv` files, or if any of its output folders
+`CNV/01-cnv` contains no `.cnv` files, or if any of its output folders
 already exist under `ALIGN_O/OUT/`. Remove or rename earlier results before
 rerunning it.
 
@@ -326,7 +304,8 @@ Select one CNV filename, the scan range to keep, and up to
 five variables. The same selections are applied to every folder plot. Pressure
 is plotted downward, and each selected variable has its own x-axis scale.
 The **Custom X/Y axes** tab lets you select one X variable and one Y variable
-for a single-axis plot of each alignment folder. Its Y axis is inverted.
+for a single-axis plot of each alignment folder. It defaults to oxygen (ml/l)
+on X and temperature on Y. Its Y axis is inverted.
 
 ## Other tools
 
