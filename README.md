@@ -11,7 +11,7 @@ alignment values, and browse the converted CNV files as interactive plots.
 ## Software requirements
 
 - **Windows.** The Sea-Bird processing software runs only on Windows.
-- **Sea-Bird SBE Data Processing.** Used for all CTD conversions. The alignment
+- [**Sea-Bird SBE Data Processing.**](https://242648281.fs1.hubspotusercontent-na2.net/hubfs/242648281/Software/SBE_Data_Processing.zip) Used for all CTD conversions. The alignment
 experiment scripts run its batch program, `SBEBatch.exe`, so the SBE Data
 Processing installation folder must be on the `PATH` of the terminal.
 - **Python 3.11 or newer**, with the packages in 
