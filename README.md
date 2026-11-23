@@ -307,6 +307,42 @@ The **Custom X/Y axes** tab lets you select one X variable and one Y variable
 for a single-axis plot of each alignment folder. It defaults to oxygen (ml/l)
 on X and temperature on Y. Its Y axis is inverted.
 
+## Surface soak removal app
+
+`soak_removal/review_app.py` removes the surface soak from processed CNV
+files, usually the files in `CNV/06-drv`. It is the CNV version of the
+NetCDF soak review app (`main.py review-soak`) in the CTD_QARTOD project. Run
+it with the input folder, which is required:
+
+```powershell
+python soak_removal\review_app.py HG26193\CNV\06-drv
+```
+
+Open [http://127.0.0.1:8051](http://127.0.0.1:8051) (change it with
+`--port`). The input folder must be the `CNV` folder or a folder inside it.
+Trimmed files are written to a `SOAK_REMOVED` folder next to the `CNV`
+folder, for example `HG26193\SOAK_REMOVED`. The app also keeps its review
+state there in `review_progress.json`.
+
+The app suggests the rows to keep from the depth profile and plots depth,
+temperature, conductivity, salinity, and dissolved oxygen against the scan
+number. Set the kept range with the slider or by clicking the plot, then
+select **Accept & Save**. The output file has the original header unchanged,
+including `# nvalues` and `# span`, and only the data rows in the kept range.
+Rows are removed from the beginning, the end, or both.
+
+The plotted variables are recognized from the CNV column names: depth
+(`depSM`), temperature (`t090C`), conductivity (`c0S/m`), salinity
+(`sal00`), and dissolved oxygen concentration (`sbeox0ML/L` or
+`sbeox0Mg/L`). If a file has no matching column, its plot stays empty. Use
+the dropdown above the plots to select any column of the file instead. A
+column you select is kept for the next files that have it. The soak
+detection uses the column selected for depth; without one, the whole cast is
+kept as the suggested range.
+
+To apply a batch file of accepted and problematic casts without opening the
+app, add `--apply-batch batch.json`.
+
 ## Other tools
 
 These optional tools help with browsing CNV files and checking the results
@@ -388,7 +424,7 @@ app. The app discovers CNV files only beneath this search root. Custom paths
 must also be inside it; relative custom paths are resolved from the search
 root.
 
-Open [http://127.0.0.1:8051](http://127.0.0.1:8051). Select a discovered CNV folder or enter a custom
+Open [http://127.0.0.1:8054](http://127.0.0.1:8054). Select a discovered CNV folder or enter a custom
 path, then select **Analyze folder**. The report separates files whose pump
 status contains only zeroes from files containing a value of one. For pump-on
 files, the results table shows the first zero-to-one transition index, pressure
