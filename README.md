@@ -327,8 +327,10 @@ state there in `review_progress.json`.
 The app suggests the rows to keep from the depth profile and plots depth,
 temperature, conductivity, salinity, and dissolved oxygen against the scan
 number. Set the kept range with the slider or by clicking the plot, then
-select **Accept & Save**. The output file has the original header unchanged,
-including `# nvalues` and `# span`, and only the data rows in the kept range.
+select **Accept & Save**. The output file has the original header and only the
+data rows in the kept range. In the header, `# nvalues` is set to the number of
+kept rows and each `# span` line to the minimum and maximum of the kept rows;
+other header lines are unchanged.
 Rows are removed from the beginning, the end, or both.
 
 The plotted variables are recognized from the CNV column names: depth

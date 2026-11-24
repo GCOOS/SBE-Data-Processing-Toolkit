@@ -2,8 +2,9 @@
 Read and truncate Sea-Bird .cnv files, and recognize the plotted variables.
 
 A .cnv file is a text header that ends with the ``*END*`` line, followed by one
-data row per scan. Truncation keeps the header bytes unchanged and writes only
-a contiguous slice of the original data rows.
+data row per scan. Truncation keeps the header bytes unchanged except for the
+``# nvalues`` count and the ``# span`` ranges, and writes only a contiguous
+slice of the original data rows.
 """
 
 from __future__ import annotations
@@ -28,6 +29,14 @@ __all__ = [
 END_MARKER = b"*END*"
 NAME_PATTERN = re.compile(r"^#\s*name\s+(\d+)\s*=\s*([^:]+?)\s*(?::\s*(.*))?$")
 BAD_FLAG_PATTERN = re.compile(r"^#\s*bad_flag\s*=\s*(\S+)")
+NVALUES_PATTERN = re.compile(
+    rb"^(#[ \t]*nvalues[ \t]*=[ \t]*)(\d+)([ \t]*)(?=\r?$)", re.MULTILINE
+)
+SPAN_PATTERN = re.compile(
+    rb"^(#[ \t]*span[ \t]+(\d+)[ \t]*=[ \t]?)([^,\r\n]*),([^\r\n]*?)(?=\r?$)",
+    re.MULTILINE,
+)
+SPAN_FIELD_WIDTH = 10
 
 PLOT_KEYS = ("depth", "temp", "conductivity", "salinity", "do")
 PLOT_TITLES = {
@@ -147,11 +156,59 @@ def read_cnv(path: Path) -> CnvFile:
     return _read_cached(str(path.resolve()), st.st_mtime_ns, st.st_size)
 
 
+def _set_nvalues(header: bytes, count: int) -> bytes:
+    """Replace the ``# nvalues`` count, keeping the line's padded width."""
+
+    def replace(match: re.Match[bytes]) -> bytes:
+        digits = str(count).encode("ascii")
+        width = len(match.group(2)) + len(match.group(3))
+        return match.group(1) + digits.ljust(width)
+
+    return NVALUES_PATTERN.sub(replace, header, count=1)
+
+
+def _format_like(value: float, template: str) -> str:
+    """Format ``value`` with the notation and decimals of ``template``."""
+    mantissa, exp_sep, _ = template.lower().partition("e")
+    decimals = len(mantissa.partition(".")[2])
+    return f"{value:.{decimals}{'e' if exp_sep else 'f'}}"
+
+
+def _set_spans(header: bytes, data_lines: list[bytes]) -> bytes:
+    """
+    Replace each ``# span`` min/max with the range of ``data_lines`` (bad_flag
+    values ignored), keeping each variable's precision and the line's width.
+    Spans of columns without valid values are left unchanged.
+    """
+    if not data_lines:
+        return header
+    values = _parse_cnv(header + b"".join(data_lines)).values
+
+    def replace(match: re.Match[bytes]) -> bytes:
+        col = int(match.group(2))
+        if col >= values.shape[1]:
+            return match.group(0)
+        column = values[:, col]
+        column = column[np.isfinite(column)]
+        if column.size == 0:
+            return match.group(0)
+        old_lo = match.group(3).decode("latin-1")
+        old_hi = match.group(4).decode("latin-1")
+        lo = _format_like(float(column.min()), old_lo.strip())
+        hi = _format_like(float(column.max()), old_hi.strip())
+        body = f"{lo:>{SPAN_FIELD_WIDTH}}, {hi:>{SPAN_FIELD_WIDTH}}"
+        body = body.ljust(len(old_lo) + 1 + len(old_hi))
+        return match.group(1) + body.encode("latin-1")
+
+    return SPAN_PATTERN.sub(replace, header)
+
+
 def write_truncated_cnv(
     input_path: Path, output_path: Path, start_idx: int, end_idx: int
 ) -> int:
     """
-    Write the unchanged header and data rows ``[start_idx, end_idx)``.
+    Write the header with ``# nvalues`` and ``# span`` updated to describe the
+    kept rows, followed by data rows ``[start_idx, end_idx)``.
 
     Returns the number of data rows written.
     """
@@ -159,9 +216,11 @@ def write_truncated_cnv(
     n = len(data_lines)
     start_idx = max(0, min(int(start_idx), n))
     end_idx = max(start_idx, min(int(end_idx), n))
+    kept_lines = data_lines[start_idx:end_idx]
+    header = _set_spans(_set_nvalues(header, len(kept_lines)), kept_lines)
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_bytes(header + b"".join(data_lines[start_idx:end_idx]))
-    return end_idx - start_idx
+    output_path.write_bytes(header + b"".join(kept_lines))
+    return len(kept_lines)
 
 
 def recognize_variables(cnv: CnvFile) -> dict[str, str | None]:

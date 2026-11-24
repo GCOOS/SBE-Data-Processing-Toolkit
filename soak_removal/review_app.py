@@ -2,8 +2,9 @@
 Interactive Dash app for reviewing and adjusting CTD surface soak removal in
 Sea-Bird .cnv files.
 
-The .cnv header is copied unchanged; only data rows before the kept start
-and/or after the kept end are removed. Output is written to a SOAK_REMOVED
+The .cnv header is copied unchanged except for ``# nvalues`` and ``# span``,
+which are updated to describe the kept rows; only data rows before the kept
+start and/or after the kept end are removed. Output is written to a SOAK_REMOVED
 folder next to the CNV folder that contains the input folder.
 
 Usage:
@@ -672,7 +673,8 @@ def save_trimmed_cnv(
     end_idx: int,
 ) -> dict:
     """
-    Copy the .cnv header unchanged and keep data rows [start_idx, end_idx).
+    Copy the .cnv header with ``# nvalues`` and ``# span`` updated and keep data rows
+    [start_idx, end_idx).
 
     Returns dict with 'ok' (bool) and optional 'error' (str).
     """
@@ -2350,7 +2352,8 @@ def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(
         description=(
             "Interactive Dash app for reviewing CTD surface soak removal in .cnv "
-            "files. Trimmed files keep the original header and are written to a "
+            "files. Trimmed files keep the original header, with nvalues and "
+            "span updated for the kept rows, and are written to a "
             f"{OUTPUT_FOLDER_NAME} folder next to the CNV folder."
         )
     )
