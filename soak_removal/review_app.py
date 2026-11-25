@@ -1494,7 +1494,7 @@ def create_app(
         if current_end < current_start:
             current_start, current_end = current_end, current_start
 
-        # Rounded global high/low (for markers + for snapping keep-from when tied to algorithm cut).
+        # Rounded global high/low markers.
         idx_global_shallow: int | None = None
         idx_global_deep: int | None = None
         idx_real_global_shallow: int | None = None
@@ -1521,28 +1521,6 @@ def create_app(
                     idx_global_deep = i_dp
                 y_global_shallow = float(depth_data[idx_global_shallow])
                 y_global_deep = float(depth_data[idx_global_deep])
-
-        if (
-            idx_global_shallow is not None
-            and int(current_start) == int(auto_start)
-        ):
-            d_auto = (
-                float(depth_data[auto_start])
-                if 0 <= int(auto_start) < depth_data.size
-                and np.isfinite(depth_data[auto_start])
-                else float("nan")
-            )
-            if np.isfinite(d_auto) and np.isfinite(y_global_shallow) and abs(d_auto - y_global_shallow) > 0.1:
-                current_start = int(idx_global_shallow)
-
-        # Right cut: first scan (in count order) where depth rounds to 2 d.p. to the profile max — when end still matches auto.
-        if idx_global_deep is not None and int(current_end) == int(auto_end):
-            current_end = int(idx_global_deep)
-
-        current_start = max(0, min(int(current_start), max_scan))
-        current_end = max(0, min(int(current_end), max_scan))
-        if current_start > current_end:
-            current_end = int(current_start)
 
         scans = np.arange(total_scans)
 
@@ -1736,7 +1714,7 @@ def create_app(
                     row=row, col=1
                 )
 
-        # Red dashes: start = keep-from (algo vs rounded global-high snap); end = rounded global-low first scan when end was auto.
+        # Red dashes: current start and end of the kept range.
         for row in range(1, 6):
             fig.add_vline(x=current_start, line=dict(color="red", dash="dash", width=2), row=row, col=1)
             fig.add_vline(x=current_end, line=dict(color="red", dash="dash", width=2), row=row, col=1)
@@ -1865,7 +1843,7 @@ def create_app(
                 "label": f"2m: {pre_trim_idx}",
                 "style": {"color": "green"},
             }
-        if auto_end < max_scan and auto_end not in slider_marks:
+        if auto_end not in slider_marks or auto_end == max_scan:
             slider_marks[auto_end] = {
                 "label": f"Auto end: {auto_end}",
                 "style": {"color": "#6f42c1"},
